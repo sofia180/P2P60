@@ -711,7 +711,7 @@ async def set_contact(message: Message, state: FSMContext) -> None:
     phone = normalize_phone(phone_raw)
     if not phone:
         await message.answer(
-            f"Не удалось распознать номер. Введите телефон в формате +7XXXXXXXXXX (мин. {PHONE_MIN_DIGITS} цифр)."
+            f"Не удалось распознать номер. Введите телефон в международном формате, например +48 600 000 000 (мин. {PHONE_MIN_DIGITS} цифр)."
         )
         return
 

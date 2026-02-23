@@ -20,7 +20,7 @@ BRAND_TAGLINE = os.getenv("BRAND_TAGLINE", "Fast P2P Exchange")
 SUPPORT_HANDLE = os.getenv("SUPPORT_HANDLE", "@p2p60_support")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 
-CURRENCIES = _split_csv(os.getenv("CURRENCIES", "RUB,USD,EUR,USDT"))
+CURRENCIES = _split_csv(os.getenv("CURRENCIES", "USD,EUR,USDT"))
 PAYMENT_METHODS = _split_csv(os.getenv("PAYMENT_METHODS", "Банк,Наличные,Крипто-кошелек"))
 CITY_OPTIONS = _split_csv(os.getenv("CITY_OPTIONS", ""))
 
@@ -150,7 +150,7 @@ FAQ_MESSAGE = os.getenv(
         "— Сколько занимает сделка?\n"
         "Обычно 5–15 минут после подтверждения.\n\n"
         "— Какие валюты доступны?\n"
-        "Основные: RUB, USD, EUR, USDT.\n\n"
+        "Основные: USD, EUR, USDT.\n\n"
         "— Нужны ли документы?\n"
         "Иногда — да, по требованиям AML/KYC.\n\n"
         "— Можно ли подключить биржу?\n"
