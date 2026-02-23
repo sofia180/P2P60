@@ -49,11 +49,22 @@ from config import (
     CURRENCIES,
     PAYMENT_METHODS,
     CITY_OPTIONS,
+    EXCHANGE_OPTIONS,
+    WALLET_NETWORKS,
     WEBAPP_URL,
 )
 from logic import classify_priority, format_request_message
-from states import ExchangeForm
-from storage import init_db, save_request, stats as request_stats, export_requests_csv, push_to_integrations
+from market import get_rates_text
+from states import ExchangeForm, ConnectForm
+from storage import (
+    init_db,
+    save_request,
+    stats as request_stats,
+    export_requests_csv,
+    push_to_integrations,
+    save_connection,
+    list_connections,
+)
 
 router = Router()
 
@@ -100,6 +111,8 @@ def build_start_keyboard() -> InlineKeyboardMarkup:
         builder.button(text="Открыть красивую форму", web_app=WebAppInfo(url=WEBAPP_URL))
     builder.button(text="Начать обмен", callback_data="start_exchange")
     builder.button(text="Курс сейчас", callback_data="rate_info")
+    builder.button(text="Подключить биржу/кошелек", callback_data="connect_start")
+    builder.button(text="Мои подключения", callback_data="my_connections")
     builder.button(text="Как это работает", callback_data="how_it_works")
     builder.button(text="Поддержка", callback_data="support")
     builder.adjust(1)
@@ -165,6 +178,55 @@ def build_contact_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
+def build_connect_kind_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Биржу", callback_data="connect_kind:exchange"),
+                InlineKeyboardButton(text="Кошелек", callback_data="connect_kind:wallet"),
+            ]
+        ]
+    )
+
+
+def build_exchange_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for name in EXCHANGE_OPTIONS:
+        builder.button(text=name, callback_data=f"exchange:{name}")
+    builder.button(text="Другая", callback_data="exchange:other")
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def build_wallet_network_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for network in WALLET_NETWORKS:
+        builder.button(text=network, callback_data=f"network:{network}")
+    builder.button(text="Другая", callback_data="network:other")
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def build_connect_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Сохранить", callback_data="connect_confirm"),
+                InlineKeyboardButton(text="Отменить", callback_data="connect_cancel"),
+            ]
+        ]
+    )
+
+
+def mask_identifier(value: str | None) -> str:
+    if not value:
+        return "-"
+    clean = value.strip()
+    if len(clean) <= 8:
+        return clean
+    return f"{clean[:4]}…{clean[-4:]}"
+
+
 async def ask_direction(message: Message, state: FSMContext) -> None:
     await state.set_state(ExchangeForm.direction)
     await message.answer(QUESTION_DIRECTION, reply_markup=build_direction_keyboard())
@@ -208,6 +270,43 @@ async def ask_contact(message: Message, state: FSMContext) -> None:
     await message.answer(QUESTION_CONTACT, reply_markup=build_contact_keyboard())
 
 
+async def ask_connect_kind(message: Message, state: FSMContext) -> None:
+    await state.set_state(ConnectForm.kind)
+    await message.answer(
+        "Что хотите подключить?\n"
+        "Мы запрашиваем только публичные данные (UID/адрес), без API-ключей.",
+        reply_markup=build_connect_kind_keyboard(),
+    )
+
+
+async def ask_exchange(message: Message, state: FSMContext) -> None:
+    await state.set_state(ConnectForm.exchange)
+    await message.answer("Выберите биржу.", reply_markup=build_exchange_keyboard())
+
+
+async def ask_wallet_network(message: Message, state: FSMContext) -> None:
+    await state.set_state(ConnectForm.wallet_network)
+    await message.answer("Выберите сеть/тип кошелька.", reply_markup=build_wallet_network_keyboard())
+
+
+async def ask_identifier(message: Message, state: FSMContext, prompt: str) -> None:
+    await state.set_state(ConnectForm.identifier)
+    await message.answer(prompt)
+
+
+async def show_connect_summary(message: Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    summary = (
+        "<b>Проверьте подключение</b>\n"
+        f"Тип: {'Биржа' if data.get('kind') == 'exchange' else 'Кошелек'}\n"
+        f"Биржа: {data.get('exchange_name') or '-'}\n"
+        f"Сеть: {data.get('network') or '-'}\n"
+        f"Идентификатор: {mask_identifier(data.get('identifier'))}"
+    )
+    await state.set_state(ConnectForm.confirm)
+    await message.answer(summary, reply_markup=build_connect_confirm_keyboard())
+
+
 async def show_summary(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     summary = (
@@ -228,7 +327,8 @@ async def show_summary(message: Message, state: FSMContext) -> None:
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer(INTRO_TEXT, reply_markup=build_start_keyboard())
+    rates_text = await get_rates_text()
+    await message.answer(f"{INTRO_TEXT}\n\n{rates_text}", reply_markup=build_start_keyboard())
 
 
 @router.message(Command("cancel"))
@@ -246,7 +346,8 @@ async def start_exchange(callback: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data == "rate_info")
 async def show_rate(callback: CallbackQuery) -> None:
     await callback.answer()
-    await callback.message.answer(RATE_INFO_MESSAGE)
+    rates_text = await get_rates_text()
+    await callback.message.answer(f"{rates_text}\n\n{RATE_INFO_MESSAGE}")
 
 
 @router.callback_query(F.data == "how_it_works")
@@ -259,6 +360,137 @@ async def show_how_it_works(callback: CallbackQuery) -> None:
 async def show_support(callback: CallbackQuery) -> None:
     await callback.answer()
     await callback.message.answer(SUPPORT_MESSAGE)
+
+
+@router.callback_query(F.data == "connect_start")
+async def connect_start(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    await ask_connect_kind(callback.message, state)
+
+
+@router.callback_query(F.data == "my_connections")
+async def show_connections(callback: CallbackQuery) -> None:
+    await callback.answer()
+    user_id = str(callback.from_user.id) if callback.from_user else ""
+    rows = list_connections(user_id)
+    if not rows:
+        await callback.message.answer("Подключений пока нет.")
+        return
+
+    lines = ["<b>Ваши подключения</b>"]
+    for row in rows:
+        kind = "Биржа" if row["kind"] == "exchange" else "Кошелек"
+        exchange = row["exchange_name"] or "-"
+        network = row["network"] or "-"
+        identifier = mask_identifier(row["identifier"])
+        lines.append(f"{kind}: {exchange} • {network} • {identifier}")
+    await callback.message.answer("\n".join(lines))
+
+
+@router.message(Command("connections"))
+async def cmd_connections(message: Message) -> None:
+    user_id = str(message.from_user.id) if message.from_user else ""
+    rows = list_connections(user_id)
+    if not rows:
+        await message.answer("Подключений пока нет.")
+        return
+    lines = ["<b>Ваши подключения</b>"]
+    for row in rows:
+        kind = "Биржа" if row["kind"] == "exchange" else "Кошелек"
+        exchange = row["exchange_name"] or "-"
+        network = row["network"] or "-"
+        identifier = mask_identifier(row["identifier"])
+        lines.append(f"{kind}: {exchange} • {network} • {identifier}")
+    await message.answer("\n".join(lines))
+
+
+@router.callback_query(ConnectForm.kind, F.data.startswith("connect_kind:"))
+async def connect_kind_selected(callback: CallbackQuery, state: FSMContext) -> None:
+    kind = callback.data.split(":", 1)[1]
+    await state.update_data(kind=kind)
+    await callback.answer()
+    if kind == "exchange":
+        await ask_exchange(callback.message, state)
+    else:
+        await ask_wallet_network(callback.message, state)
+
+
+@router.callback_query(ConnectForm.exchange, F.data.startswith("exchange:"))
+async def connect_exchange_selected(callback: CallbackQuery, state: FSMContext) -> None:
+    exchange = callback.data.split(":", 1)[1]
+    await callback.answer()
+    if exchange == "other":
+        await state.set_state(ConnectForm.exchange_custom)
+        await callback.message.answer("Введите название биржи.")
+        return
+    await state.update_data(exchange_name=exchange)
+    await ask_identifier(callback.message, state, "Укажите UID/Email/логин в бирже.")
+
+
+@router.message(ConnectForm.exchange_custom)
+async def connect_exchange_custom(message: Message, state: FSMContext) -> None:
+    name = (message.text or "").strip()
+    if not name:
+        await message.answer("Пожалуйста, напишите название биржи.")
+        return
+    await state.update_data(exchange_name=name)
+    await ask_identifier(message, state, "Укажите UID/Email/логин в бирже.")
+
+
+@router.callback_query(ConnectForm.wallet_network, F.data.startswith("network:"))
+async def connect_network_selected(callback: CallbackQuery, state: FSMContext) -> None:
+    network = callback.data.split(":", 1)[1]
+    await callback.answer()
+    if network == "other":
+        await state.set_state(ConnectForm.wallet_network_custom)
+        await callback.message.answer("Введите сеть/тип кошелька.")
+        return
+    await state.update_data(network=network)
+    await ask_identifier(callback.message, state, "Укажите адрес кошелька.")
+
+
+@router.message(ConnectForm.wallet_network_custom)
+async def connect_network_custom(message: Message, state: FSMContext) -> None:
+    network = (message.text or "").strip()
+    if not network:
+        await message.answer("Пожалуйста, укажите сеть/тип кошелька.")
+        return
+    await state.update_data(network=network)
+    await ask_identifier(message, state, "Укажите адрес кошелька.")
+
+
+@router.message(ConnectForm.identifier)
+async def connect_identifier(message: Message, state: FSMContext) -> None:
+    identifier = (message.text or "").strip()
+    if len(identifier) < 6:
+        await message.answer("Слишком короткий идентификатор. Проверьте и отправьте снова.")
+        return
+    await state.update_data(identifier=identifier)
+    await show_connect_summary(message, state)
+
+
+@router.callback_query(ConnectForm.confirm, F.data == "connect_cancel")
+async def connect_cancel(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    await state.clear()
+    await callback.message.answer("Подключение отменено. Можете начать заново через /start.")
+
+
+@router.callback_query(ConnectForm.confirm, F.data == "connect_confirm")
+async def connect_confirm(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    data = await state.get_data()
+    connection = {
+        "tg_user_id": str(callback.from_user.id) if callback.from_user else None,
+        "tg_username": f"@{callback.from_user.username}" if callback.from_user and callback.from_user.username else None,
+        "kind": data.get("kind"),
+        "exchange_name": data.get("exchange_name"),
+        "network": data.get("network"),
+        "identifier": data.get("identifier"),
+    }
+    save_connection(connection)
+    await state.clear()
+    await callback.message.answer("Подключение сохранено. Можно продолжить обмен.")
 
 
 @router.callback_query(ExchangeForm.direction, F.data.startswith("direction:"))

@@ -148,6 +148,33 @@ img {
   font-size: 1.1rem;
 }
 
+.hero-rates {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.rate-card {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(16, 22, 32, 0.8);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.rate-card strong {
+  font-size: 1rem;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
 .form-card {
   background: var(--bg-card);
   border: 1px solid var(--border);

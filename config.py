@@ -24,6 +24,9 @@ CURRENCIES = _split_csv(os.getenv("CURRENCIES", "RUB,USD,EUR,USDT"))
 PAYMENT_METHODS = _split_csv(os.getenv("PAYMENT_METHODS", "Банк,Наличные,Крипто-кошелек"))
 CITY_OPTIONS = _split_csv(os.getenv("CITY_OPTIONS", ""))
 
+EXCHANGE_OPTIONS = _split_csv(os.getenv("EXCHANGE_OPTIONS", "Binance,Bybit,OKX,HTX,KuCoin"))
+WALLET_NETWORKS = _split_csv(os.getenv("WALLET_NETWORKS", "TRC20,ERC20,BEP20"))
+
 HIGH_AMOUNT = float(os.getenv("HIGH_AMOUNT", "5000"))
 
 DIRECTION_OPTIONS = [
@@ -38,6 +41,20 @@ URGENCY_OPTIONS = [
     {"key": "today", "label": "Сегодня"},
     {"key": "days", "label": "1–3 дня"},
 ]
+
+RATE_PROVIDER_URL = os.getenv(
+    "RATE_PROVIDER_URL",
+    "https://api.coingecko.com/api/v3/simple/price",
+)
+RATE_VS_CURRENCY = os.getenv("RATE_VS_CURRENCY", "usd").lower()
+RATE_REFRESH_SECONDS = int(os.getenv("RATE_REFRESH_SECONDS", "60"))
+
+RATE_COINS = {
+    "bitcoin": "BTC",
+    "ethereum": "ETH",
+    "tether": "USDT",
+    "usd-coin": "USDC",
+}
 
 INTRO_TEXT = os.getenv(
     "INTRO_TEXT",

@@ -11,3 +11,13 @@ class ExchangeForm(StatesGroup):
     urgency = State()
     contact = State()
     confirm = State()
+
+
+class ConnectForm(StatesGroup):
+    kind = State()
+    exchange = State()
+    exchange_custom = State()
+    wallet_network = State()
+    wallet_network_custom = State()
+    identifier = State()
+    confirm = State()

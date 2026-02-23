@@ -48,6 +48,20 @@ def init_db() -> None:
             );
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS connections (
+                id INTEGER PRIMARY KEY,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                tg_user_id TEXT,
+                tg_username TEXT,
+                kind TEXT,
+                exchange_name TEXT,
+                network TEXT,
+                identifier TEXT
+            );
+            """
+        )
 
 
 def save_request(request: dict[str, Any]) -> tuple[int, bool]:
@@ -135,6 +149,39 @@ def stats() -> dict[str, int]:
             "SELECT COUNT(*) AS c FROM requests WHERE priority='high'"
         ).fetchone()["c"]
     return {"total": total, "high": high}
+
+
+def save_connection(connection: dict[str, Any]) -> int:
+    with get_conn() as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO connections (
+                tg_user_id, tg_username, kind, exchange_name, network, identifier
+            ) VALUES (?,?,?,?,?,?)
+            """,
+            (
+                connection.get("tg_user_id"),
+                connection.get("tg_username"),
+                connection.get("kind"),
+                connection.get("exchange_name"),
+                connection.get("network"),
+                connection.get("identifier"),
+            ),
+        )
+        return int(cur.lastrowid)
+
+
+def list_connections(tg_user_id: str) -> list[sqlite3.Row]:
+    with get_conn() as conn:
+        return conn.execute(
+            """
+            SELECT created_at, kind, exchange_name, network, identifier
+            FROM connections
+            WHERE tg_user_id=?
+            ORDER BY created_at DESC
+            """,
+            (tg_user_id,),
+        ).fetchall()
 
 
 def export_requests_csv(start: date, end: date, output_path: Path) -> Path:

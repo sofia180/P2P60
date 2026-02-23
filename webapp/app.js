@@ -7,6 +7,46 @@ if (tg) {
   tg.expand();
 }
 
+const rateMap = {
+  bitcoin: "BTC",
+  ethereum: "ETH",
+  tether: "USDT",
+  "usd-coin": "USDC",
+};
+
+const rateTargets = document.querySelectorAll("[data-rate]");
+
+const formatPrice = (value) => {
+  if (value >= 1000) return value.toFixed(2);
+  if (value >= 100) return value.toFixed(2);
+  if (value >= 1) return value.toFixed(4);
+  return value.toFixed(6);
+};
+
+const loadRates = async () => {
+  try {
+    const ids = Object.keys(rateMap).join(",");
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`;
+    const response = await fetch(url);
+    if (!response.ok) return;
+    const data = await response.json();
+    rateTargets.forEach((el) => {
+      const symbol = el.getAttribute("data-rate");
+      const entry = Object.entries(rateMap).find(([, label]) => label === symbol);
+      if (!entry) return;
+      const [coinId] = entry;
+      const value = data?.[coinId]?.usd;
+      if (typeof value === "number") {
+        el.textContent = formatPrice(value);
+      }
+    });
+  } catch (error) {
+    // Silent fallback
+  }
+};
+
+loadRates();
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
