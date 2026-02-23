@@ -1,0 +1,20 @@
+services:
+  - type: worker
+    name: p2p60-bot
+    env: docker
+    plan: free
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: BRAND_NAME
+        value: P2P60
+      - key: WEBAPP_URL
+        sync: false
+      - key: CRM_WEBHOOK_URL
+        sync: false
+      - key: GOOGLE_SHEETS_WEBHOOK_URL
+        sync: false

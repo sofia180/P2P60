@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>P2P60 Exchange</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header class="site-header fade-up">
+        <div class="brand">
+          <span class="brand-mark">P2</span>
+          <span>P2P60 Exchange</span>
+        </div>
+        <div class="header-meta">
+          <span>Премиум P2P обмен</span>
+          <span>60 секунд до сделки</span>
+        </div>
+      </header>
+
+      <main class="hero-grid">
+        <section class="hero fade-up">
+          <span class="eyebrow">Extender-style execution</span>
+          <h1>Лучший обменник для тех, кому важно быстро и безопасно.</h1>
+          <p>
+            Мы соединяем вас с проверенным оператором, фиксируем курс и сопровождаем сделку до
+            закрытия. Скорость, прозрачность и финтех-уровень сервиса.
+          </p>
+          <div class="hero-tags">
+            <span class="hero-tag">P2P</span>
+            <span class="hero-tag">USDT</span>
+            <span class="hero-tag">Банк</span>
+            <span class="hero-tag">Наличные</span>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <strong>6 мин</strong>
+              <span>среднее согласование</span>
+            </div>
+            <div class="hero-stat">
+              <strong>24/7</strong>
+              <span>операторы и поддержка</span>
+            </div>
+            <div class="hero-stat">
+              <strong>99%</strong>
+              <span>сделок без задержек</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-card fade-up fade-delay">
+          <h2 class="form-title">Оставить заявку</h2>
+          <p class="form-subtitle">Заполните форму — мы зафиксируем условия и свяжемся с вами.</p>
+
+          <form id="exchange-form" class="form-grid">
+            <div class="form-field">
+              <label for="direction">Направление</label>
+              <select id="direction" name="direction" required>
+                <option value="exchange">Обмен</option>
+                <option value="buy">Покупаю</option>
+                <option value="sell">Продаю</option>
+                <option value="transfer">Перевод</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <div class="form-field">
+                <label for="from_currency">Отдаю</label>
+                <select id="from_currency" name="from_currency" required>
+                  <option value="RUB">RUB</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="USDT">USDT</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="to_currency">Получаю</label>
+                <select id="to_currency" name="to_currency" required>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="USDT">USDT</option>
+                  <option value="RUB">RUB</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="amount">Сумма</label>
+              <input id="amount" name="amount" type="text" placeholder="Например: 1500" required />
+            </div>
+
+            <div class="form-field">
+              <label for="payment_method">Способ оплаты/получения</label>
+              <select id="payment_method" name="payment_method" required>
+                <option value="Банк">Банк</option>
+                <option value="Наличные">Наличные</option>
+                <option value="Крипто-кошелек">Крипто-кошелек</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <div class="form-field">
+                <label for="city">Город/страна</label>
+                <input id="city" name="city" type="text" placeholder="Москва / Тбилиси" required />
+              </div>
+              <div class="form-field">
+                <label for="urgency">Срочность</label>
+                <select id="urgency" name="urgency" required>
+                  <option value="now">Сейчас</option>
+                  <option value="today">Сегодня</option>
+                  <option value="days">1–3 дня</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="phone">Телефон для связи</label>
+              <input id="phone" name="phone" type="tel" placeholder="+7 900 000 00 00" required />
+            </div>
+
+            <button class="submit-btn" type="submit">Зафиксировать условия</button>
+            <div class="success" id="success">Заявка отправлена. Можно закрывать окно.</div>
+          </form>
+
+          <p class="form-note">
+            Мы работаем только в рамках закона и можем запросить данные для AML/KYC.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

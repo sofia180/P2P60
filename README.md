@@ -1,2 +1,50 @@
-# P2P60
-fastest p2p bot ever
+# P2P60 — Premium P2P Exchange Bot
+
+Telegram‑бот для быстрых P2P‑обменов с премиальной подачей и Extender‑style UI. Включает:
+
+- Чат‑поток с кнопками и подтверждением заявки
+- WebApp форму в стиле Extender (опционально)
+- Сохранение заявок в SQLite
+- Экспорт CSV и интеграции через вебхуки
+
+## Быстрый старт
+
+1. Установите зависимости:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+2. Создайте `.env` по примеру `.env.example` и заполните `BOT_TOKEN`.
+
+3. Запуск:
+
+```bash
+python app.py
+```
+
+## Команды
+
+- `/start` — запуск
+- `/stats` — статистика заявок (админы)
+- `/export [YYYY-MM-DD] [YYYY-MM-DD]` — CSV за период (админы)
+- `/cancel` — отмена текущего шага
+
+## WebApp форма
+
+В каталоге `webapp` лежит статическая форма в стиле Extender. Чтобы подключить ее:
+
+1. Разместите `webapp` на хостинге (Vercel/Netlify/Static).
+2. Укажите URL в `WEBAPP_URL`.
+3. В `/start` появится кнопка «Открыть красивую форму».
+
+## Интеграции
+
+Бот может отправлять данные в:
+
+- CRM через `CRM_WEBHOOK_URL`
+- Google Sheets через `GOOGLE_SHEETS_WEBHOOK_URL`
+
+Также можно писать в CSV, указав `GOOGLE_SHEETS_CSV_PATH`.
