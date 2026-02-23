@@ -44,6 +44,18 @@ python app.py
 2. Укажите URL в `WEBAPP_URL`.
 3. В `/start` появится кнопка «Открыть красивую форму».
 
+### Railway (рекомендованный способ)
+
+Сделайте два сервиса в Railway:
+
+1. **Bot service** (worker):
+   - Start command: `python app.py`
+   - Variables: `BOT_TOKEN`, `ADMIN_IDS`, `CRYPTO_KEY` (если API‑ключи)
+
+2. **WebApp service** (web):
+   - Start command: `python webapp_server.py`
+   - После деплоя получите публичный HTTPS URL и запишите его в `WEBAPP_URL`
+
 ## Интеграции
 
 Бот может отправлять данные в:
