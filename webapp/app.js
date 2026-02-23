@@ -2,9 +2,21 @@ const form = document.getElementById("exchange-form");
 const success = document.getElementById("success");
 const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
+const applyTelegramTheme = () => {
+  if (!tg || !tg.themeParams) return;
+  const theme = tg.themeParams;
+  if (theme.button_color) {
+    document.documentElement.style.setProperty("--accent", theme.button_color);
+    document.documentElement.style.setProperty("--accent-strong", theme.button_color);
+  }
+};
+
 if (tg) {
   tg.ready();
   tg.expand();
+  if (tg.setHeaderColor) tg.setHeaderColor("#0a0c10");
+  if (tg.setBackgroundColor) tg.setBackgroundColor("#0a0c10");
+  applyTelegramTheme();
 }
 
 const rateMap = {
@@ -17,10 +29,10 @@ const rateMap = {
 const rateTargets = document.querySelectorAll("[data-rate]");
 
 const formatPrice = (value) => {
-  if (value >= 1000) return value.toFixed(2);
-  if (value >= 100) return value.toFixed(2);
-  if (value >= 1) return value.toFixed(4);
-  return value.toFixed(6);
+  let options = { maximumFractionDigits: 2 };
+  if (value < 1) options = { maximumFractionDigits: 6 };
+  else if (value < 100) options = { maximumFractionDigits: 4 };
+  return new Intl.NumberFormat("en-US", options).format(value);
 };
 
 const loadRates = async () => {
@@ -37,7 +49,7 @@ const loadRates = async () => {
       const [coinId] = entry;
       const value = data?.[coinId]?.usd;
       if (typeof value === "number") {
-        el.textContent = formatPrice(value);
+        el.textContent = `$${formatPrice(value)}`;
       }
     });
   } catch (error) {
