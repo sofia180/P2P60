@@ -43,6 +43,9 @@ from config import (
     RATE_INFO_MESSAGE,
     HOW_IT_WORKS_MESSAGE,
     SUPPORT_MESSAGE,
+    GUARANTEE_MESSAGE,
+    TERMS_MESSAGE,
+    FAQ_MESSAGE,
     PHONE_MIN_DIGITS,
     DIRECTION_OPTIONS,
     URGENCY_OPTIONS,
@@ -52,10 +55,12 @@ from config import (
     EXCHANGE_OPTIONS,
     WALLET_NETWORKS,
     WEBAPP_URL,
+    CRYPTO_KEY,
 )
 from logic import classify_priority, format_request_message
 from market import get_rates_text
 from states import ExchangeForm, ConnectForm
+from security import CryptoUnavailable, encrypt_value
 from storage import (
     init_db,
     save_request,
@@ -113,6 +118,9 @@ def build_start_keyboard() -> InlineKeyboardMarkup:
     builder.button(text="Курс сейчас", callback_data="rate_info")
     builder.button(text="Подключить биржу/кошелек", callback_data="connect_start")
     builder.button(text="Мои подключения", callback_data="my_connections")
+    builder.button(text="Гарантия", callback_data="guarantee")
+    builder.button(text="Условия", callback_data="terms")
+    builder.button(text="FAQ", callback_data="faq")
     builder.button(text="Как это работает", callback_data="how_it_works")
     builder.button(text="Поддержка", callback_data="support")
     builder.adjust(1)
@@ -218,6 +226,17 @@ def build_connect_confirm_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def build_connect_method_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="UID / Email", callback_data="connect_method:public"),
+                InlineKeyboardButton(text="API ключи", callback_data="connect_method:api"),
+            ]
+        ]
+    )
+
+
 def mask_identifier(value: str | None) -> str:
     if not value:
         return "-"
@@ -274,7 +293,7 @@ async def ask_connect_kind(message: Message, state: FSMContext) -> None:
     await state.set_state(ConnectForm.kind)
     await message.answer(
         "Что хотите подключить?\n"
-        "Мы запрашиваем только публичные данные (UID/адрес), без API-ключей.",
+        "Мы не запрашиваем пароли. API-ключи при сохранении шифруются.",
         reply_markup=build_connect_kind_keyboard(),
     )
 
@@ -289,6 +308,11 @@ async def ask_wallet_network(message: Message, state: FSMContext) -> None:
     await message.answer("Выберите сеть/тип кошелька.", reply_markup=build_wallet_network_keyboard())
 
 
+async def ask_connect_method(message: Message, state: FSMContext) -> None:
+    await state.set_state(ConnectForm.method)
+    await message.answer("Как подключить биржу?", reply_markup=build_connect_method_keyboard())
+
+
 async def ask_identifier(message: Message, state: FSMContext, prompt: str) -> None:
     await state.set_state(ConnectForm.identifier)
     await message.answer(prompt)
@@ -296,13 +320,22 @@ async def ask_identifier(message: Message, state: FSMContext, prompt: str) -> No
 
 async def show_connect_summary(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
-    summary = (
-        "<b>Проверьте подключение</b>\n"
-        f"Тип: {'Биржа' if data.get('kind') == 'exchange' else 'Кошелек'}\n"
-        f"Биржа: {data.get('exchange_name') or '-'}\n"
-        f"Сеть: {data.get('network') or '-'}\n"
-        f"Идентификатор: {mask_identifier(data.get('identifier'))}"
-    )
+    method = data.get("method")
+    method_label = "API ключи" if method == "api" else "UID/Email"
+    identifier = data.get("identifier")
+    api_key = data.get("api_key")
+    if method == "api":
+        identifier = mask_identifier(api_key)
+    lines = ["<b>Проверьте подключение</b>"]
+    kind = data.get("kind")
+    lines.append(f"Тип: {'Биржа' if kind == 'exchange' else 'Кошелек'}")
+    if kind == "exchange":
+        lines.append(f"Метод: {method_label}")
+        lines.append(f"Биржа: {data.get('exchange_name') or '-'}")
+    else:
+        lines.append(f"Сеть: {data.get('network') or '-'}")
+    lines.append(f"Идентификатор: {mask_identifier(identifier)}")
+    summary = "\n".join(lines)
     await state.set_state(ConnectForm.confirm)
     await message.answer(summary, reply_markup=build_connect_confirm_keyboard())
 
@@ -362,6 +395,24 @@ async def show_support(callback: CallbackQuery) -> None:
     await callback.message.answer(SUPPORT_MESSAGE)
 
 
+@router.callback_query(F.data == "guarantee")
+async def show_guarantee(callback: CallbackQuery) -> None:
+    await callback.answer()
+    await callback.message.answer(GUARANTEE_MESSAGE)
+
+
+@router.callback_query(F.data == "terms")
+async def show_terms(callback: CallbackQuery) -> None:
+    await callback.answer()
+    await callback.message.answer(TERMS_MESSAGE)
+
+
+@router.callback_query(F.data == "faq")
+async def show_faq(callback: CallbackQuery) -> None:
+    await callback.answer()
+    await callback.message.answer(FAQ_MESSAGE)
+
+
 @router.callback_query(F.data == "connect_start")
 async def connect_start(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
@@ -380,10 +431,17 @@ async def show_connections(callback: CallbackQuery) -> None:
     lines = ["<b>Ваши подключения</b>"]
     for row in rows:
         kind = "Биржа" if row["kind"] == "exchange" else "Кошелек"
+        method = row["method"] or "public"
+        method_label = "API" if method == "api" else "UID"
         exchange = row["exchange_name"] or "-"
         network = row["network"] or "-"
         identifier = mask_identifier(row["identifier"])
-        lines.append(f"{kind}: {exchange} • {network} • {identifier}")
+        if method == "api" and identifier == "-":
+            identifier = "API ключи"
+        if row["kind"] == "exchange":
+            lines.append(f"{kind} ({method_label}): {exchange} • {identifier}")
+        else:
+            lines.append(f"{kind}: {network} • {identifier}")
     await callback.message.answer("\n".join(lines))
 
 
@@ -397,10 +455,17 @@ async def cmd_connections(message: Message) -> None:
     lines = ["<b>Ваши подключения</b>"]
     for row in rows:
         kind = "Биржа" if row["kind"] == "exchange" else "Кошелек"
+        method = row["method"] or "public"
+        method_label = "API" if method == "api" else "UID"
         exchange = row["exchange_name"] or "-"
         network = row["network"] or "-"
         identifier = mask_identifier(row["identifier"])
-        lines.append(f"{kind}: {exchange} • {network} • {identifier}")
+        if method == "api" and identifier == "-":
+            identifier = "API ключи"
+        if row["kind"] == "exchange":
+            lines.append(f"{kind} ({method_label}): {exchange} • {identifier}")
+        else:
+            lines.append(f"{kind}: {network} • {identifier}")
     await message.answer("\n".join(lines))
 
 
@@ -424,7 +489,7 @@ async def connect_exchange_selected(callback: CallbackQuery, state: FSMContext) 
         await callback.message.answer("Введите название биржи.")
         return
     await state.update_data(exchange_name=exchange)
-    await ask_identifier(callback.message, state, "Укажите UID/Email/логин в бирже.")
+    await ask_connect_method(callback.message, state)
 
 
 @router.message(ConnectForm.exchange_custom)
@@ -434,7 +499,28 @@ async def connect_exchange_custom(message: Message, state: FSMContext) -> None:
         await message.answer("Пожалуйста, напишите название биржи.")
         return
     await state.update_data(exchange_name=name)
-    await ask_identifier(message, state, "Укажите UID/Email/логин в бирже.")
+    await ask_connect_method(message, state)
+
+
+@router.callback_query(ConnectForm.method, F.data.startswith("connect_method:"))
+async def connect_method_selected(callback: CallbackQuery, state: FSMContext) -> None:
+    method = callback.data.split(":", 1)[1]
+    await callback.answer()
+    if method == "api":
+        if not CRYPTO_KEY:
+            await callback.message.answer(
+                "API подключение пока недоступно. Попросите админа настроить CRYPTO_KEY.\n"
+                "Сохраним UID/Email вместо этого."
+            )
+            await state.update_data(method="public")
+            await ask_identifier(callback.message, state, "Укажите UID/Email/логин в бирже.")
+            return
+        await state.update_data(method="api")
+        await state.set_state(ConnectForm.api_key)
+        await callback.message.answer("Введите API key.")
+        return
+    await state.update_data(method="public")
+    await ask_identifier(callback.message, state, "Укажите UID/Email/логин в бирже.")
 
 
 @router.callback_query(ConnectForm.wallet_network, F.data.startswith("network:"))
@@ -445,7 +531,7 @@ async def connect_network_selected(callback: CallbackQuery, state: FSMContext) -
         await state.set_state(ConnectForm.wallet_network_custom)
         await callback.message.answer("Введите сеть/тип кошелька.")
         return
-    await state.update_data(network=network)
+    await state.update_data(network=network, method="wallet")
     await ask_identifier(callback.message, state, "Укажите адрес кошелька.")
 
 
@@ -455,7 +541,7 @@ async def connect_network_custom(message: Message, state: FSMContext) -> None:
     if not network:
         await message.answer("Пожалуйста, укажите сеть/тип кошелька.")
         return
-    await state.update_data(network=network)
+    await state.update_data(network=network, method="wallet")
     await ask_identifier(message, state, "Укажите адрес кошелька.")
 
 
@@ -466,6 +552,37 @@ async def connect_identifier(message: Message, state: FSMContext) -> None:
         await message.answer("Слишком короткий идентификатор. Проверьте и отправьте снова.")
         return
     await state.update_data(identifier=identifier)
+    await show_connect_summary(message, state)
+
+
+@router.message(ConnectForm.api_key)
+async def connect_api_key(message: Message, state: FSMContext) -> None:
+    key = (message.text or "").strip()
+    if len(key) < 6:
+        await message.answer("Похоже на слишком короткий ключ. Попробуйте снова.")
+        return
+    await state.update_data(api_key=key)
+    await state.set_state(ConnectForm.api_secret)
+    await message.answer("Введите API secret.")
+
+
+@router.message(ConnectForm.api_secret)
+async def connect_api_secret(message: Message, state: FSMContext) -> None:
+    secret = (message.text or "").strip()
+    if len(secret) < 6:
+        await message.answer("Похоже на слишком короткий secret. Попробуйте снова.")
+        return
+    await state.update_data(api_secret=secret)
+    await state.set_state(ConnectForm.api_passphrase)
+    await message.answer("Введите passphrase (если не нужно — напишите «нет»).")
+
+
+@router.message(ConnectForm.api_passphrase)
+async def connect_api_passphrase(message: Message, state: FSMContext) -> None:
+    value = (message.text or "").strip()
+    if value.lower() in {"нет", "no", "skip"}:
+        value = ""
+    await state.update_data(api_passphrase=value)
     await show_connect_summary(message, state)
 
 
@@ -480,13 +597,33 @@ async def connect_cancel(callback: CallbackQuery, state: FSMContext) -> None:
 async def connect_confirm(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     data = await state.get_data()
+    method = data.get("method") or "public"
+    api_key_enc = None
+    api_secret_enc = None
+    api_passphrase_enc = None
+    if method == "api":
+        try:
+            api_key_enc = encrypt_value(data.get("api_key"))
+            api_secret_enc = encrypt_value(data.get("api_secret"))
+            api_passphrase_enc = encrypt_value(data.get("api_passphrase"))
+        except CryptoUnavailable:
+            await callback.message.answer(
+                "Не удалось сохранить API ключи: отсутствует CRYPTO_KEY. "
+                "Попросите админа настроить шифрование."
+            )
+            await state.clear()
+            return
     connection = {
         "tg_user_id": str(callback.from_user.id) if callback.from_user else None,
         "tg_username": f"@{callback.from_user.username}" if callback.from_user and callback.from_user.username else None,
         "kind": data.get("kind"),
+        "method": method,
         "exchange_name": data.get("exchange_name"),
         "network": data.get("network"),
         "identifier": data.get("identifier"),
+        "api_key_enc": api_key_enc,
+        "api_secret_enc": api_secret_enc,
+        "api_passphrase_enc": api_passphrase_enc,
     }
     save_connection(connection)
     await state.clear()

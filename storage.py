@@ -56,11 +56,25 @@ def init_db() -> None:
                 tg_user_id TEXT,
                 tg_username TEXT,
                 kind TEXT,
+                method TEXT,
                 exchange_name TEXT,
                 network TEXT,
-                identifier TEXT
+                identifier TEXT,
+                api_key_enc TEXT,
+                api_secret_enc TEXT,
+                api_passphrase_enc TEXT
             );
             """
+        )
+        _ensure_columns(
+            conn,
+            "connections",
+            {
+                "method": "TEXT",
+                "api_key_enc": "TEXT",
+                "api_secret_enc": "TEXT",
+                "api_passphrase_enc": "TEXT",
+            },
         )
 
 
@@ -156,16 +170,21 @@ def save_connection(connection: dict[str, Any]) -> int:
         cur = conn.execute(
             """
             INSERT INTO connections (
-                tg_user_id, tg_username, kind, exchange_name, network, identifier
-            ) VALUES (?,?,?,?,?,?)
+                tg_user_id, tg_username, kind, method, exchange_name, network,
+                identifier, api_key_enc, api_secret_enc, api_passphrase_enc
+            ) VALUES (?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 connection.get("tg_user_id"),
                 connection.get("tg_username"),
                 connection.get("kind"),
+                connection.get("method"),
                 connection.get("exchange_name"),
                 connection.get("network"),
                 connection.get("identifier"),
+                connection.get("api_key_enc"),
+                connection.get("api_secret_enc"),
+                connection.get("api_passphrase_enc"),
             ),
         )
         return int(cur.lastrowid)
@@ -175,13 +194,20 @@ def list_connections(tg_user_id: str) -> list[sqlite3.Row]:
     with get_conn() as conn:
         return conn.execute(
             """
-            SELECT created_at, kind, exchange_name, network, identifier
+            SELECT created_at, kind, method, exchange_name, network, identifier
             FROM connections
             WHERE tg_user_id=?
             ORDER BY created_at DESC
             """,
             (tg_user_id,),
         ).fetchall()
+
+
+def _ensure_columns(conn: sqlite3.Connection, table: str, columns: dict[str, str]) -> None:
+    existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+    for name, col_type in columns.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {col_type}")
 
 
 def export_requests_csv(start: date, end: date, output_path: Path) -> Path:

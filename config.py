@@ -26,6 +26,7 @@ CITY_OPTIONS = _split_csv(os.getenv("CITY_OPTIONS", ""))
 
 EXCHANGE_OPTIONS = _split_csv(os.getenv("EXCHANGE_OPTIONS", "Binance,Bybit,OKX,HTX,KuCoin"))
 WALLET_NETWORKS = _split_csv(os.getenv("WALLET_NETWORKS", "TRC20,ERC20,BEP20"))
+CRYPTO_KEY = os.getenv("CRYPTO_KEY", "")
 
 HIGH_AMOUNT = float(os.getenv("HIGH_AMOUNT", "5000"))
 
@@ -116,6 +117,45 @@ RATE_INFO_MESSAGE = os.getenv(
 SUPPORT_MESSAGE = os.getenv(
     "SUPPORT_MESSAGE",
     f"Напишите в поддержку: {SUPPORT_HANDLE}",
+)
+
+GUARANTEE_MESSAGE = os.getenv(
+    "GUARANTEE_MESSAGE",
+    (
+        "<b>Гарантия P2P60</b>\n"
+        "• Фиксация курса перед стартом сделки\n"
+        "• Проверка реквизитов и контрагента\n"
+        "• Сопровождение до полного закрытия\n"
+        "• Поддержка 24/7\n"
+        "Если что-то идет не так — мы берем ситуацию под контроль."
+    ),
+)
+
+TERMS_MESSAGE = os.getenv(
+    "TERMS_MESSAGE",
+    (
+        "<b>Условия пользования</b>\n"
+        "1. Мы работаем только в рамках закона.\n"
+        "2. Возможны запросы AML/KYC для подтверждения личности и источников средств.\n"
+        "3. Курс фиксируется на момент подтверждения оператором.\n"
+        "4. Комиссии и лимиты зависят от способа и объема.\n"
+        "5. Отправляя заявку, вы соглашаетесь с условиями сервиса."
+    ),
+)
+
+FAQ_MESSAGE = os.getenv(
+    "FAQ_MESSAGE",
+    (
+        "<b>FAQ</b>\n"
+        "— Сколько занимает сделка?\n"
+        "Обычно 5–15 минут после подтверждения.\n\n"
+        "— Какие валюты доступны?\n"
+        "Основные: RUB, USD, EUR, USDT.\n\n"
+        "— Нужны ли документы?\n"
+        "Иногда — да, по требованиям AML/KYC.\n\n"
+        "— Можно ли подключить биржу?\n"
+        "Да, укажите UID или API-ключи для интеграции."
+    ),
 )
 
 PHONE_MIN_DIGITS = int(os.getenv("PHONE_MIN_DIGITS", "10"))
