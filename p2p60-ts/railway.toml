@@ -1,0 +1,5 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "npm run migrate:prod && node dist/app.js"

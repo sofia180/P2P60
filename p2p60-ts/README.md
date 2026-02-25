@@ -32,6 +32,31 @@ npm run db:migrate
 npm run dev
 ```
 
+## Railway деплой (готово)
+
+1. Railway → New Project → Deploy from GitHub → `sofia180/P2P60`
+2. В сервисе открой **Settings → Root Directory** и укажи:
+```
+p2p60-ts
+```
+3. Добавь PostgreSQL и Redis (Add Service).
+4. В Variables сервиса добавь:
+```
+BOT_TOKEN=...
+JWT_SECRET=...
+JWT_REFRESH_SECRET=...
+DATABASE_URL=... (из PostgreSQL)
+REDIS_URL=... (из Redis)
+```
+5. Деплой автоматически подхватит `railway.toml` и запустит миграции.
+
+## Что работает сразу
+- Телеграм‑бот с меню и базовыми потоками
+- Escrow (ledger/locked)
+- Ордера и сделки
+- KYC/2FA каркас
+- Webhooks
+
 ## Основные функции
 - Авторизация + 2FA
 - Ордеры (buy/sell)
