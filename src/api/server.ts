@@ -17,6 +17,7 @@ export const createApp = () => {
   app.locals.db = db;
 
   const publicDir = path.join(process.cwd(), "public", "webapp");
+  app.use(express.static(publicDir));
   app.use("/app", express.static(publicDir));
   app.get("/", (_req, res) => {
     res.sendFile(path.join(publicDir, "index.html"));
