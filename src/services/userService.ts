@@ -28,7 +28,7 @@ export const findUserByTelegramId = async (db: Db, tgId: number) => {
 export const ensureTelegramUser = async (db: Db, tgId: number, displayName: string) => {
   let user = await findUserByTelegramId(db, tgId);
   if (user) return user;
-  const userId = await createUser(db, { tgId, phone: null, email: null });
+  const userId = await createUser(db, { tgId });
   await db.query("UPDATE profiles SET display_name=$1 WHERE user_id=$2", [displayName, userId]);
   const result = await db.query("SELECT * FROM users WHERE id=$1", [userId]);
   return result.rows[0];
