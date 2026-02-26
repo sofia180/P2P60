@@ -30,11 +30,16 @@ const store = {
   },
 };
 
-const menuKeyboard = Markup.inlineKeyboard([
-  [Markup.button.callback("Создать ордер", "menu:create_order")],
-  [Markup.button.callback("Открытые ордера", "menu:list_orders")],
-  [Markup.button.callback("Кошелек", "menu:wallet")],
-]);
+const buildMenuKeyboard = () => {
+  const rows = [];
+  if (config.webAppUrl) {
+    rows.push([Markup.button.webApp("Открыть обменник", config.webAppUrl)]);
+  }
+  rows.push([Markup.button.callback("Создать ордер", "menu:create_order")]);
+  rows.push([Markup.button.callback("Открытые ордера", "menu:list_orders")]);
+  rows.push([Markup.button.callback("Кошелек", "menu:wallet")]);
+  return Markup.inlineKeyboard(rows);
+};
 
 const sideKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback("Купить", "order_side:buy"), Markup.button.callback("Продать", "order_side:sell")],
@@ -66,7 +71,7 @@ export const startBot = async () => {
     resetSession(ctx);
     await ctx.reply(
       "P2P60 — премиальный P2P обмен.\nВыберите действие:",
-      menuKeyboard
+      buildMenuKeyboard()
     );
   });
 
@@ -174,7 +179,7 @@ export const startBot = async () => {
           maxLimit: ctx.session.data.maxLimit,
         });
         resetSession(ctx);
-        await ctx.reply(`Ордер создан: ${order.id}`, menuKeyboard);
+        await ctx.reply(`Ордер создан: ${order.id}`, buildMenuKeyboard());
         return;
       }
     }

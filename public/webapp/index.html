@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>P2P60 — Telegram Exchange</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="top">
+      <div class="brand">
+        <span class="logo">P2P60</span>
+        <span class="tag">Приватный обменник нового поколения</span>
+      </div>
+      <div class="status">
+        <span class="dot"></span>
+        <span>Online</span>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="hero">
+        <h1>Быстрый P2P‑обмен с гарантией и прозрачными условиями</h1>
+        <p>Минималистичный, защищенный, ориентированный на доверие. Поддержка фиатных валют и мгновенные сделки.</p>
+        <div class="hero-actions">
+          <button id="ctaStart" class="btn primary">Зафиксировать условия</button>
+          <button class="btn ghost" id="ctaSupport">Связаться с поддержкой</button>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="card exchange">
+          <div class="card-head">
+            <h2>Сделка</h2>
+            <span class="badge">Escrow включен</span>
+          </div>
+          <div class="fields">
+            <label>
+              Отдаю
+              <select id="giveCurrency">
+                <option>USD</option>
+                <option>EUR</option>
+                <option>PLN</option>
+                <option>UAH</option>
+                <option>KZT</option>
+                <option>TRY</option>
+              </select>
+            </label>
+            <label>
+              Получаю
+              <select id="getCurrency">
+                <option>USDT</option>
+                <option>USDC</option>
+                <option>BTC</option>
+                <option>ETH</option>
+              </select>
+            </label>
+            <label>
+              Сумма
+              <input id="amount" type="number" placeholder="Например 1500" />
+            </label>
+            <label>
+              Способ оплаты
+              <select id="paymentMethod">
+                <option>Банковский перевод</option>
+                <option>Местные платежи</option>
+                <option>Swift/SEPA</option>
+                <option>Карта</option>
+              </select>
+            </label>
+            <label>
+              Город / страна
+              <input id="location" type="text" placeholder="Варшава / Польша" />
+            </label>
+            <label>
+              Срочность
+              <select id="urgency">
+                <option>Сейчас</option>
+                <option>Сегодня</option>
+                <option>24 часа</option>
+              </select>
+            </label>
+            <label>
+              Телефон
+              <input id="phone" type="tel" placeholder="+48 600 000 000" />
+            </label>
+          </div>
+          <div class="cta-row">
+            <button id="submitDeal" class="btn primary wide">Зафиксировать условия</button>
+            <p class="hint">Работаем в рамках закона. Возможен запрос AML/KYC.</p>
+          </div>
+        </div>
+
+        <div class="card rates">
+          <div class="card-head">
+            <h2>Курсы</h2>
+            <span class="badge neon">Live</span>
+          </div>
+          <div class="rates-grid" id="rates">
+            <div class="rate">
+              <span>BTC</span>
+              <strong>—</strong>
+            </div>
+            <div class="rate">
+              <span>ETH</span>
+              <strong>—</strong>
+            </div>
+            <div class="rate">
+              <span>USDT</span>
+              <strong>—</strong>
+            </div>
+            <div class="rate">
+              <span>USDC</span>
+              <strong>—</strong>
+            </div>
+          </div>
+          <p class="muted" id="ratesUpdated">Обновление…</p>
+        </div>
+
+        <div class="card connect">
+          <div class="card-head">
+            <h2>Подключение биржи</h2>
+            <span class="badge">Скоро</span>
+          </div>
+          <p class="muted">Подключите аккаунт биржи для ускоренного подтверждения и лимитов.</p>
+          <div class="connect-list">
+            <button class="btn ghost">Binance</button>
+            <button class="btn ghost">OKX</button>
+            <button class="btn ghost">Bybit</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="card info">
+          <h3>Гарантия P2P60</h3>
+          <p>Фиксация курса, проверка реквизитов и сопровождение сделки. В спорных ситуациях подключается арбитраж.</p>
+        </div>
+        <div class="card info">
+          <h3>Условия пользования</h3>
+          <p>Только безопасные платежи, прозрачные комиссии и защита от фрода. Никаких скрытых платежей.</p>
+        </div>
+        <div class="card info">
+          <h3>FAQ</h3>
+          <details>
+            <summary>Как работает escrow?</summary>
+            <p>Средства блокируются до подтверждения обеими сторонами. После подтверждения — автоматический релиз.</p>
+          </details>
+          <details>
+            <summary>Какой минимальный лимит?</summary>
+            <p>Минимальная сумма сделки зависит от валюты и доступной ликвидности.</p>
+          </details>
+          <details>
+            <summary>Нужна ли верификация?</summary>
+            <p>Да, для некоторых лимитов требуется KYC/AML.</p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>© 2026 P2P60</span>
+      <span class="muted">Безопасный P2P‑обмен</span>
+    </footer>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

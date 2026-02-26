@@ -14,6 +14,7 @@ export const config = {
   env: getEnv("NODE_ENV", "development"),
   port: Number(getEnv("PORT", "3000")),
   botToken: getEnv("BOT_TOKEN", ""),
+  webAppUrl: getEnv("WEBAPP_URL", ""),
   jwtSecret: getEnv("JWT_SECRET"),
   jwtRefreshSecret: getEnv("JWT_REFRESH_SECRET"),
   redisUrl: getEnv("REDIS_URL"),
