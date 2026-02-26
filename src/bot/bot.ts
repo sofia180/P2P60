@@ -1,4 +1,4 @@
-import { Telegraf, Markup, session, type Context, type SessionFlavor } from "telegraf";
+import { Telegraf, Markup, session, type Context } from "telegraf";
 import Redis from "ioredis";
 import { config } from "../config.js";
 import { db } from "../db/index.js";
@@ -13,7 +13,7 @@ type BotSession = {
   data?: Record<string, any>;
 };
 
-type BotContext = Context & SessionFlavor<BotSession>;
+type BotContext = Context & { session: BotSession };
 
 const redis = new Redis(config.redisUrl);
 
@@ -58,7 +58,7 @@ const resetSession = (ctx: any) => {
 export const startBot = async () => {
   const bot = new Telegraf<BotContext>(config.botToken);
 
-  bot.use(session<BotSession>({ store, defaultSession: (): BotSession => ({ data: {} }) }));
+  bot.use(session({ store: store as any, defaultSession: (): BotSession => ({ data: {} }) }) as any);
 
   bot.start(async (ctx) => {
     const name = ctx.from?.username || ctx.from?.first_name || "P2P60 User";
