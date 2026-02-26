@@ -6,6 +6,7 @@ import { ensureTelegramUser } from "../services/userService.js";
 import { createOrder, listActiveOrders } from "../services/orderService.js";
 import { createOfferAndTrade, confirmPayment, releaseEscrow, openDispute } from "../services/tradeService.js";
 import { ensureWallet } from "../services/walletService.js";
+import { initMarketMakers, createUserOrder, listOrders, listUserOrders, findOrder, tradeOrder } from "./marketplace.js";
 
 type BotSession = {
   flow?: "create_order" | "create_offer";
@@ -65,12 +66,21 @@ export const startBot = async () => {
 
   bot.use(session({ store: store as any, defaultSession: (): BotSession => ({ data: {} }) }) as any);
 
+  await initMarketMakers();
+
   bot.start(async (ctx) => {
     const name = ctx.from?.username || ctx.from?.first_name || "P2P60 User";
     await ensureTelegramUser(db, ctx.from?.id ?? 0, name);
     resetSession(ctx);
     await ctx.reply(
-      "P2P60 — премиальный P2P обмен.\nВыберите действие:",
+      [
+        "P2P60 — премиальный P2P обмен.",
+        "Команды:",
+        "/create BUY BTC 0.1 USD — создать ордер",
+        "/list — список ордеров",
+        "/my — мои ордера",
+        "/trade ORDER_ID [AMOUNT] — совершить сделку",
+      ].join("\n"),
       buildMenuKeyboard()
     );
   });
@@ -191,6 +201,78 @@ export const startBot = async () => {
       resetSession(ctx);
       await ctx.reply(`Сделка создана: ${result.trade.id}. Ожидаем подтверждение оплаты.`);
       return;
+    }
+  });
+
+  bot.command("list", async (ctx) => {
+    const orders = listOrders();
+    if (!orders.length) {
+      return ctx.reply("Пока нет активных ордеров.");
+    }
+    const text = orders
+      .slice(0, 10)
+      .map((o) => {
+        const price = o.price ? ` @ ${o.price.toFixed(2)} ${o.currency}` : ` ${o.currency}`;
+        const tag = o.isMarketMaker ? "MM" : "USER";
+        return `${o.id} | ${o.type} ${o.asset} ${o.amount} ${price} | ${tag}`;
+      })
+      .join("\n");
+    await ctx.reply(text + "\n\nЧтобы торговать: /trade ORDER_ID");
+  });
+
+  bot.command("my", async (ctx) => {
+    const userId = String(ctx.from?.id ?? "");
+    const orders = listUserOrders(userId);
+    if (!orders.length) {
+      return ctx.reply("У вас пока нет ордеров.");
+    }
+    const text = orders
+      .map((o) => `${o.id} | ${o.type} ${o.asset} ${o.amount} ${o.currency} | ${o.status}`)
+      .join("\n");
+    await ctx.reply(text);
+  });
+
+  bot.command("create", async (ctx) => {
+    const parts = ctx.message.text.split(" ").slice(1);
+    if (parts.length < 4) {
+      return ctx.reply("Формат: /create BUY BTC 0.1 USD");
+    }
+    const [typeRaw, assetRaw, amountRaw, currencyRaw] = parts;
+    const type = typeRaw.toUpperCase();
+    const asset = assetRaw.toUpperCase();
+    const currency = currencyRaw.toUpperCase();
+    const amount = Number(amountRaw);
+    if (!["BUY", "SELL"].includes(type)) return ctx.reply("Тип ордера: BUY или SELL.");
+    if (!amount || amount <= 0) return ctx.reply("Сумма должна быть больше 0.");
+    const userId = String(ctx.from?.id ?? "");
+    const username = ctx.from?.username ?? ctx.from?.first_name ?? "user";
+    const order = createUserOrder({ user_id: userId, username, type: type as any, asset, amount, currency });
+    await ctx.reply(`Ордер создан: ${order.id}`);
+  });
+
+  bot.command("trade", async (ctx) => {
+    const parts = ctx.message.text.split(" ").slice(1);
+    if (!parts.length) return ctx.reply("Формат: /trade ORDER_ID [AMOUNT]");
+    const [orderId, amountRaw] = parts;
+    const order = findOrder(orderId);
+    if (!order || order.status !== "OPEN") {
+      return ctx.reply("Ордер не найден или уже закрыт.");
+    }
+    const amount = amountRaw ? Number(amountRaw) : undefined;
+    if (amountRaw && (!amount || amount <= 0)) return ctx.reply("Некорректная сумма.");
+    try {
+      const result = await tradeOrder(order, String(ctx.from?.id ?? ""), amount);
+      const pct = (config.takerFeePct * 100).toFixed(2);
+      const message = [
+        `Сделка выполнена: ${result.order.id}`,
+        `Сумма: ${result.filledAmount}`,
+        `Комиссия (${pct}%): ${result.fee}`,
+        `К получению: ${result.netAmount}`,
+        result.instant ? "Исполнено мгновенно (MM)." : `Статус: отправлено на биржу (${result.externalRef ?? "симуляция"})`,
+      ].join("\n");
+      await ctx.reply(message);
+    } catch (err: any) {
+      await ctx.reply(err?.message ?? "Ошибка исполнения.");
     }
   });
 
