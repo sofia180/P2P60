@@ -1,8 +1,6 @@
 # P2P60 TS — Telegram P2P Exchange Bot (Node.js + TypeScript)
 
-Полноценный каркас P2P‑обменника с Telegram‑ботом, PostgreSQL и Redis. Включает ордера, escrow, рейтинги, dispute, KYC и интеграции.
 
-> Важно: реальный P2P‑обмен фиата требует соответствия законам, лицензий, KYC/AML и договоров с банками/PSP. Этот проект — технический каркас.
 
 ## Стек
 - Node.js 20 + TypeScript
